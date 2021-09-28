@@ -454,6 +454,7 @@ public class TinySAL implements SAL {
 	    connect.setContextHandle(handle.getContextHandle());
 	    connect.setIFDName(handle.getIFDName());
 	    connect.setSlot(handle.getSlotIndex());
+	    connect.setExclusive(request.isExclusiveUse());
 
 	    ConnectResponse connectResponse = (ConnectResponse) env.getDispatcher().safeDeliver(connect);
 	    WSHelper.checkResult(connectResponse);
