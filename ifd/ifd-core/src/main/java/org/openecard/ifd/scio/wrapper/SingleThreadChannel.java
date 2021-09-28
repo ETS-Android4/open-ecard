@@ -64,6 +64,7 @@ public class SingleThreadChannel implements IfdChannel {
      * Currently active secure messaging protocol.
      */
     private Protocol smProtocol = null;
+    private boolean transacted;
 
     /**
      * Creates a master instance and launches a command submission thread.
@@ -311,11 +312,17 @@ public class SingleThreadChannel implements IfdChannel {
     @Override
     public void beginExclusive() throws SCIOException, IllegalStateException, InterruptedException {
 	submitTransaction(true);
+	transacted = true;
     }
 
     @Override
     public void endExclusive() throws SCIOException, IllegalStateException, InterruptedException {
 	submitTransaction(false);
+	transacted = false;
+    }
+
+    public boolean isTransacted() {
+	return transacted;
     }
 
     private void submitTransaction(final boolean start) throws SCIOException, IllegalStateException, InterruptedException {

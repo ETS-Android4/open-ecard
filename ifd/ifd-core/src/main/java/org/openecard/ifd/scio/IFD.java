@@ -846,6 +846,11 @@ public class IFD implements org.openecard.ws.IFD {
 	    try {
 		byte[] handle = parameters.getSlotHandle();
 		SingleThreadChannel ch = cm.getSlaveChannel(handle);
+
+		if (ch.isTransacted()) {
+		    ch.endExclusive();
+		}
+
 		cm.closeSlaveChannel(handle);
 
 		// process actions
