@@ -33,6 +33,7 @@ import java.util.concurrent.Callable;
 import org.openecard.binding.tctoken.ex.ErrorTranslations;
 import org.openecard.common.ECardConstants;
 import org.openecard.common.AppVersion;
+import org.openecard.common.DynamicContext;
 import org.openecard.common.interfaces.Dispatcher;
 import org.openecard.common.interfaces.DispatcherException;
 import org.openecard.common.interfaces.DocumentSchemaValidator;
@@ -55,15 +56,15 @@ public class PAOSTask implements Callable<StartPAOSResponse> {
     private static final Logger LOG = LoggerFactory.getLogger(PAOSTask.class);
 
     private final Dispatcher dispatcher;
-    private final ConnectionHandleType connectionHandle;
+    private final ConnectionHandleType sessionHandle;
     private final List<String> supportedDIDs;
     private final TCTokenRequest tokenRequest;
     private final Promise<DocumentSchemaValidator> schemaValidator;
 
-    public PAOSTask(Dispatcher dispatcher, ConnectionHandleType connectionHandle, List<String> supportedDIDs,
+    public PAOSTask(Dispatcher dispatcher, ConnectionHandleType sessionHandle, List<String> supportedDIDs,
 	    TCTokenRequest tokenRequest, Promise<DocumentSchemaValidator> schemaValidator) {
 	this.dispatcher = dispatcher;
-	this.connectionHandle = connectionHandle;
+	this.sessionHandle = sessionHandle;
 	this.supportedDIDs = supportedDIDs;
 	this.tokenRequest = tokenRequest;
 	this.schemaValidator = schemaValidator;
@@ -74,7 +75,7 @@ public class PAOSTask implements Callable<StartPAOSResponse> {
 	    throws MalformedURLException, PAOSException, DispatcherException, InvocationTargetException,
 	    ConnectionError, PAOSConnectionException {
 	try {
-	    TlsConnectionHandler tlsHandler = new TlsConnectionHandler(dispatcher, tokenRequest, connectionHandle);
+	    TlsConnectionHandler tlsHandler = new TlsConnectionHandler(dispatcher, tokenRequest, null);
 	    tlsHandler.setUpClient();
 
 	    DocumentSchemaValidator v;
@@ -112,7 +113,11 @@ public class PAOSTask implements Callable<StartPAOSResponse> {
 	} finally {
 
 	    try {
-		TCTokenHandler.disconnectHandle(dispatcher, connectionHandle);
+		DynamicContext dynCtx = DynamicContext.getInstance(TR03112Keys.INSTANCE_KEY);
+		ConnectionHandleType conHandle = (ConnectionHandleType) dynCtx.get(TR03112Keys.CONNECTION_HANDLE);
+		if (conHandle != null) {
+		    TCTokenHandler.disconnectHandle(dispatcher, conHandle);
+		}
 	    } catch (Exception ex) {
 		LOG.warn("Error disconnecting finished handle.", ex);
 	    }
@@ -120,7 +125,7 @@ public class PAOSTask implements Callable<StartPAOSResponse> {
     }
 
     private ConnectionHandleType getHandleForServer() {
-	ConnectionHandleType result = HandlerUtils.copyHandle(connectionHandle);
+	ConnectionHandleType result = HandlerUtils.copyHandle(sessionHandle);
 	// this is our own extension and servers might not understand it
 	result.setSlotInfo(null);
 	return result;
